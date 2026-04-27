@@ -808,11 +808,59 @@ function globalEnd() {
   if (dragCurX < -threshold) {
     card.style.transform = `translateX(-140vw) rotate(-20deg)`;
     card.style.opacity = '0';
-    setTimeout(() => { cardQueue.shift(); addToList('.read-panel .list-scroll', data); renderCards(); centerCards(); }, 320);
+
+
+setTimeout(() => {
+  const nextCard = dragCard?.nextElementSibling;
+
+  cardQueue.shift();
+  addToList('.read-panel .list-scroll', data);
+
+  if (nextCard) {
+    nextCard.classList.remove('c2');
+    nextCard.classList.add('c1');
+
+    const third = nextCard.nextElementSibling;
+    if (third) {
+      third.classList.remove('c3');
+      third.classList.add('c2');
+    }
+  }
+
+  renderCards(); // fallback (새 카드 채우기용)
+  centerCards();
+}, 320);
+
+
+
   } else if (dragCurX > threshold) {
     card.style.transform = `translateX(140vw) rotate(20deg)`;
     card.style.opacity = '0';
-    setTimeout(() => { cardQueue.shift(); addToList('.saved-panel .list-scroll', data); renderCards(); centerCards(); }, 320);
+
+
+setTimeout(() => {
+  const nextCard = dragCard?.nextElementSibling;
+
+  cardQueue.shift();
+  addToList('.saved-panel .list-scroll', data);
+
+  if (nextCard) {
+    nextCard.classList.remove('c2');
+    nextCard.classList.add('c1');
+
+    const third = nextCard.nextElementSibling;
+    if (third) {
+      third.classList.remove('c3');
+      third.classList.add('c2');
+    }
+  }
+
+  renderCards();
+  centerCards();
+}, 320);
+
+
+
   } else {
     card.style.transform = '';
     if (Math.abs(dragCurX) < 8 && data.url) window.open(data.url, '_blank');
