@@ -423,9 +423,59 @@ html, body {
 /* Savor page: red bg → icons white */
 .bottom-nav.on-savor .nav-btn.inactive { color: rgba(255,255,255,0.4); }
 .bottom-nav.on-savor .nav-btn.active   { color: #fff; }
+/* ── Splash ── */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #F1F1F1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 50px;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+#splash.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-inner {
+  width: 100%;
+  text-align: center;
+}
+
+.splash-title {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #111;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.splash-subtitle {
+  margin-top: 12px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  line-height: 1.72;
+  color: #666;
+  text-align: center;
+}
+
 </style>
 </head>
 <body>
+
+<div id="splash">
+  <div class="splash-inner">
+    <div class="splash-title" id="splashTitle">SAVOR</div>
+    <div class="splash-subtitle">Creative people and works worth savoring</div>
+  </div>
+</div>
 
 <div id="pageBg"></div>
 <div class="track" id="track">
@@ -839,9 +889,28 @@ function fitTitles() {
   });
 }
 
+function fitSplashTitle() {
+  const el = document.getElementById('splashTitle');
+  if (!el) return;
+
+  el.style.fontSize = '100px';
+
+  const available = window.innerWidth - 100; // 좌우 50px씩
+  const ratio = available / el.scrollWidth;
+
+  el.style.fontSize = Math.floor(100 * ratio) + 'px';
+}
+
 document.fonts.ready.then(() => {
   fitTitles();
+  fitSplashTitle();
+
   window.addEventListener('resize', fitTitles);
+  window.addEventListener('resize', fitSplashTitle);
+
+  setTimeout(() => {
+    document.getElementById('splash')?.classList.add('hide');
+  }, 1400);
 });
 
 // ── Center card stack vertically in cards-area ──
