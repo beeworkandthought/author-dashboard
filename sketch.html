@@ -93,8 +93,8 @@ html, body {
   overflow: hidden;
   box-shadow: 0 8px 28px rgba(0,0,0,0.12);
   transform-origin: center center;
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.26s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.24s ease;
   user-select: none;
   will-change: transform, opacity;
   backface-visibility: hidden;
@@ -796,76 +796,67 @@ function globalMove(x) {
   });
 }
 
+
+
 function globalEnd() {
   if (!isDragging || !dragCard) return;
   isDragging = false;
   dragCard.style.transition = '';
 
   const threshold = 90;
-  const card = dragCard, data = dragData;
-  dragCard = null; dragData = null;
+  const card = dragCard;
+  const data = dragData;
+  const nextCard = card.nextElementSibling;
+
+  dragCard = null;
+  dragData = null;
+
+  function promoteNextCards() {
+    if (!nextCard) return;
+
+    nextCard.classList.remove('c2');
+    nextCard.classList.add('c1');
+
+    const third = nextCard.nextElementSibling;
+    if (third) {
+      third.classList.remove('c3');
+      third.classList.add('c2');
+    }
+  }
 
   if (dragCurX < -threshold) {
-    card.style.transform = `translateX(-140vw) rotate(-20deg)`;
+    card.style.transform = `translate3d(-140vw, 0, 0) rotate(-20deg)`;
     card.style.opacity = '0';
 
+    promoteNextCards();
 
-setTimeout(() => {
-  const nextCard = dragCard?.nextElementSibling;
-
-  cardQueue.shift();
-  addToList('.read-panel .list-scroll', data);
-
-  if (nextCard) {
-    nextCard.classList.remove('c2');
-    nextCard.classList.add('c1');
-
-    const third = nextCard.nextElementSibling;
-    if (third) {
-      third.classList.remove('c3');
-      third.classList.add('c2');
-    }
-  }
-
-  renderCards(); // fallback (새 카드 채우기용)
-  centerCards();
-}, 320);
-
-
+    setTimeout(() => {
+      cardQueue.shift();
+      addToList('.read-panel .list-scroll', data);
+      renderCards();
+      centerCards();
+    }, 320);
 
   } else if (dragCurX > threshold) {
-    card.style.transform = `translateX(140vw) rotate(20deg)`;
+    card.style.transform = `translate3d(140vw, 0, 0) rotate(20deg)`;
     card.style.opacity = '0';
 
+    promoteNextCards();
 
-setTimeout(() => {
-  const nextCard = dragCard?.nextElementSibling;
-
-  cardQueue.shift();
-  addToList('.saved-panel .list-scroll', data);
-
-  if (nextCard) {
-    nextCard.classList.remove('c2');
-    nextCard.classList.add('c1');
-
-    const third = nextCard.nextElementSibling;
-    if (third) {
-      third.classList.remove('c3');
-      third.classList.add('c2');
-    }
-  }
-
-  renderCards();
-  centerCards();
-}, 320);
-
-
+    setTimeout(() => {
+      cardQueue.shift();
+      addToList('.saved-panel .list-scroll', data);
+      renderCards();
+      centerCards();
+    }, 320);
 
   } else {
     card.style.transform = '';
     if (Math.abs(dragCurX) < 8 && data.url) window.open(data.url, '_blank');
   }
 }
+
+
 
 window.addEventListener('mousemove', e => globalMove(e.clientX));
 window.addEventListener('mouseup',   () => globalEnd());
