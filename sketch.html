@@ -91,11 +91,14 @@ html, body {
   background: #fff;
   border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.12);
   transform-origin: center center;
-  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              opacity 0.35s ease;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.24s ease;
   user-select: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 /* Stack peeks from TOP, each card scaled down + slightly rotated + more transparent */
@@ -758,6 +761,7 @@ function addToList(listSelector, data) {
 // Card drag — single global handler
 // ══════════════════════════════════════
 let dragCard = null, dragData = null, dragStartX = 0, dragCurX = 0, isDragging = false;
+let rafId = null;
 
 function attachDrag(card, data) {
   card.addEventListener('mousedown', e => {
@@ -776,8 +780,20 @@ function attachDrag(card, data) {
 function globalMove(x) {
   if (!isDragging || !dragCard) return;
   dragCurX = x - dragStartX;
-  const rotate = dragCurX * 0.06;
-  dragCard.style.transform = `translateX(${dragCurX}px) rotate(${rotate}deg) scale(1)`;
+
+  if (rafId) return;
+
+  rafId = requestAnimationFrame(() => {
+    if (!dragCard) {
+      rafId = null;
+      return;
+    }
+
+    const rotate = dragCurX * 0.045;
+    dragCard.style.transform = `translate3d(${dragCurX}px, 0, 0) rotate(${rotate}deg) scale(1)`;
+
+    rafId = null;
+  });
 }
 
 function globalEnd() {
