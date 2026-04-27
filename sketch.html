@@ -838,7 +838,7 @@ function globalEnd() {
       addToList('.read-panel .list-scroll', data);
       renderCards();
       centerCards();
-    }, 520);
+    }, 120);
 
   } else if (dragCurX > threshold) {
     card.style.transform = `translate3d(140vw, 0, 0) rotate(20deg)`;
@@ -851,7 +851,7 @@ function globalEnd() {
       addToList('.saved-panel .list-scroll', data);
       renderCards();
       centerCards();
-    }, 520);
+    }, 120);
 
   } else {
     card.style.transform = '';
