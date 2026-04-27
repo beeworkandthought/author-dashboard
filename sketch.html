@@ -93,13 +93,16 @@ html, body {
   overflow: hidden;
   box-shadow: 0 8px 28px rgba(0,0,0,0.12);
   transform-origin: center center;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.24s ease;
+  transition: transform 0.48s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.34s ease;
   user-select: none;
   will-change: transform, opacity;
   backface-visibility: hidden;
   transform: translateZ(0);
 }
+
+
+
 
 /* Stack peeks from TOP, each card scaled down + slightly rotated + more transparent */
 .card.c1 { z-index: 3; transform: translateY(0)    scale(1)   rotate(0deg);  opacity: 1; }
@@ -835,7 +838,7 @@ function globalEnd() {
       addToList('.read-panel .list-scroll', data);
       renderCards();
       centerCards();
-    }, 320);
+    }, 520);
 
   } else if (dragCurX > threshold) {
     card.style.transform = `translate3d(140vw, 0, 0) rotate(20deg)`;
@@ -848,7 +851,7 @@ function globalEnd() {
       addToList('.saved-panel .list-scroll', data);
       renderCards();
       centerCards();
-    }, 320);
+    }, 520);
 
   } else {
     card.style.transform = '';
