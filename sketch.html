@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>작가 대시보드</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Diphylleia&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Diphylleia', "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: #111;
+  overscroll-behavior: none;
+}
+
+/* ── Page background (color dissolve target) ── */
+#pageBg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #F1F1F1;
+  transition: background-color 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Panel Track ── */
+.track {
+  display: flex;
+  width: 300vw;
+  height: 100dvh;
+  will-change: transform;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.panel {
+  width: 100vw;
+  height: 100dvh;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: transparent;
+}
+
+/* ── Colors — panels are transparent, pageBg handles color dissolve ── */
+.home-panel  { background: transparent; display: flex; flex-direction: column; }
+.saved-panel { background: transparent; }
+.read-panel  { background: transparent; }
+
+/* ════════════════════════════════
+   HOME — Card Stack
+════════════════════════════════ */
+.home-header {
+  padding: 16px 16px 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.home-header h1 {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #111;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.cards-area {
+  position: relative;
+  flex: 1;
+  overflow: visible;
+  margin-bottom: 74px;
+}
+
+/* Card base */
+.card {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  background: #fff;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.14);
+  transform-origin: center center;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              opacity 0.35s ease;
+  user-select: none;
+}
+
+/* Stack peeks from TOP, each card scaled down + slightly rotated + more transparent */
+.card.c1 { z-index: 3; transform: translateY(0)    scale(1)   rotate(0deg);  opacity: 1; }
+.card.c2 { z-index: 2; transform: translateY(-60px)  scale(0.8) rotate(-4deg); opacity: 0.9; pointer-events: none; }
+.card.c3 { z-index: 1; transform: translateY(-110px) scale(0.6) rotate(5deg);  opacity: 0.25; pointer-events: none; }
+
+/* While dragging */
+.card.c1.dragging { transition: none; }
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 10px;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #C0181E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.author-info { flex: 1; }
+.author-name { font-size: 14px; font-weight: 700; color: #111; line-height: 1.2; font-family: 'Noto Sans KR', sans-serif; }
+.author-meta { font-size: 12px; color: #AAAAAA; font-family: 'Noto Sans KR', sans-serif; }
+
+.card-add-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-add-btn svg { display: block; }
+
+.card-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.32;
+  padding: 0 16px 14px;
+  letter-spacing: -0.3px;
+}
+
+/* Card with image */
+.card-img-wrap {
+  width: 100%;
+  height: 220px;
+  padding: 0 12px 12px;
+  flex-shrink: 0;
+}
+
+.card-img-bg {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(155deg, #C0181E 0%, #7A0A0E 100%);
+}
+
+.card-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 55%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px 14px;
+}
+
+.card-tag {
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.card-tag-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+}
+
+.card-subtitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.35;
+}
+
+/* Card with text summary */
+.card-summary-wrap {
+  height: 220px;
+  padding: 0 16px 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+}
+
+.card-summary {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.75;
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-event-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FFF0F0;
+  color: #C0181E;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin: 0 16px 12px;
+}
+
+/* ════════════════════════════════
+   LIST PANELS (Read + Saved)
+════════════════════════════════ */
+.list-header {
+  padding: 16px 16px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.list-header h1 {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #111;
+  text-transform: uppercase;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.list-header .list-count {
+  font-size: 14px;
+  color: #AAAAAA;
+  margin-top: 2px;
+  font-weight: 400;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.saved-panel .list-header,
+.read-panel .list-header  { border-bottom-color: rgba(255,255,255,0.12); }
+
+.saved-panel .list-header h1    { color: #fff; }
+.saved-panel .list-header .list-count { color: rgba(255,255,255,0.5); }
+.read-panel .list-header h1     { color: #777; }
+.read-panel .list-header .list-count  { color: #555; }
+
+.list-scroll {
+  overflow-y: auto;
+  height: calc(100dvh - 140px - 74px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.list-item { border-bottom: 1px solid rgba(0,0,0,0.08); }
+.saved-panel .list-item { border-bottom-color: rgba(255,255,255,0.12); }
+.read-panel .list-item  { border-bottom-color: rgba(255,255,255,0.08); }
+
+.list-item-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px;
+  cursor: pointer;
+  gap: 14px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.list-item-left { flex: 1; min-width: 0; }
+
+.list-item-author {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #AAAAAA;
+  margin-bottom: 5px;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.saved-panel .list-item-author { color: rgba(255,255,255,0.45); }
+.read-panel .list-item-author  { color: #555; }
+
+.list-item-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+}
+
+.saved-panel .list-item-title { color: #fff; }
+.read-panel .list-item-title  { color: #888; }
+
+.list-toggle {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.list-toggle svg { stroke: #AAAAAA; }
+.saved-panel .list-toggle svg { stroke: rgba(255,255,255,0.45); }
+.read-panel .list-toggle svg  { stroke: #555; }
+
+.list-item.open .list-toggle { transform: rotate(45deg); }
+
+.list-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.list-item.open .list-body { max-height: 280px; }
+
+.list-body-inner {
+  padding: 0 16px 20px;
+  font-size: 14px;
+  line-height: 1.72;
+  color: #666;
+}
+
+.saved-panel .list-body-inner { color: rgba(255,255,255,0.65); }
+.read-panel .list-body-inner  { color: #666; }
+
+.list-body-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  text-decoration: none;
+  border-bottom: 1.5px solid #111;
+  padding-bottom: 1px;
+  letter-spacing: 0.2px;
+}
+
+.saved-panel .list-body-link {
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.5);
+}
+
+.read-panel .list-body-link {
+  color: #777;
+  border-bottom-color: #555;
+}
+
+/* ════════════════════════════════
+   BOTTOM NAV
+════════════════════════════════ */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 74px;
+  z-index: 200;
+  touch-action: pan-x;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 200px;
+}
+
+.nav-btn {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  -webkit-appearance: none;
+}
+
+.nav-btn svg { pointer-events: none; }
+
+.nav-btn.inactive { color: #777777; }
+.nav-btn.active   { color: #C0181E; }
+
+/* Savor page: red bg → icons white */
+.bottom-nav.on-savor .nav-btn.inactive { color: rgba(255,255,255,0.4); }
+.bottom-nav.on-savor .nav-btn.active   { color: #fff; }
+</style>
+</head>
+<body>
+
+<div id="pageBg"></div>
+<div class="track" id="track">
+
+  <!-- ── DIGESTED (left panel, index 0) ── -->
+  <div class="panel read-panel">
+    <div class="list-header">
+      <h1>Digested</h1>
+      <div class="list-count">읽은 기사 1개</div>
+    </div>
+    <div class="list-scroll">
+
+      <div class="list-item" onclick="toggleList(this)">
+        <div class="list-item-hd">
+          <div class="list-item-left">
+            <div class="list-item-title">You've been here before</div>
+          </div>
+          <div class="list-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg></div>
+        </div>
+        <div class="list-body">
+          <div class="list-body-inner">You've seen these, read them, felt them once. They've passed through you — leaving something behind. Not everything stays, but everything shaped you in some way.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FRESH (center panel, index 1) ── -->
+  <div class="panel home-panel">
+    <div class="home-header">
+      <h1>Fresh</h1>
+    </div>
+    <div class="cards-area" id="cardsArea">
+      <!-- cards rendered by JS -->
+    </div>
+  </div>
+
+  <!-- ── SAVOR (right panel, index 2) ── -->
+  <div class="panel saved-panel">
+    <div class="list-header">
+      <h1>Savor</h1>
+      <div class="list-count">저장한 기사 1개</div>
+    </div>
+    <div class="list-scroll">
+
+      <div class="list-item" onclick="toggleList(this)">
+        <div class="list-item-hd">
+          <div class="list-item-left">
+            <div class="list-item-title">Stay with me a little longer</div>
+          </div>
+          <div class="list-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg></div>
+        </div>
+        <div class="list-body">
+          <div class="list-body-inner">Some works don't end when they're over. They echo quietly, asking to be felt again. This is where you return — not to rewatch, but to understand a little deeper each time.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+</div>
+
+<!-- ── Bottom Nav ── -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="nav-inner">
+
+    <!-- Left: Tasted (list icon, index 0) -->
+    <!-- Left: Digested — closed eye with lashes -->
+    <button class="nav-btn inactive" id="btnRead" onclick="goTo(0)">
+      <svg width="33" height="33" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9 Q11 3.5 19 9"/>
+        <path d="M4 12 Q11 16.5 18 12"/>
+        <line x1="7"    y1="13.8" x2="6.2"  y2="16.8"/>
+        <line x1="9.8"  y1="15.2" x2="9.3"  y2="18.2"/>
+        <line x1="12"   y1="15.8" x2="12"   y2="18.8"/>
+        <line x1="14.2" y1="15.2" x2="14.7" y2="18.2"/>
+        <line x1="17"   y1="13.8" x2="17.8" y2="16.8"/>
+      </svg>
+    </button>
+
+    <!-- Center: Fresh — two oval eyes with pupils -->
+    <button class="nav-btn active" id="btnHome" onclick="goTo(1)">
+      <svg width="33" height="33" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round">
+        <ellipse cx="8" cy="12" rx="3.5" ry="5" transform="rotate(-20 8 12)"/>
+        <ellipse cx="15" cy="10.5" rx="3.5" ry="5" transform="rotate(-20 15 10.5)"/>
+        <circle cx="8.8" cy="12.8" r="1.6" fill="currentColor" stroke="none"/>
+        <circle cx="15.8" cy="11.3" r="1.6" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+
+    <!-- Right: Savor — thumbs up -->
+    <button class="nav-btn inactive" id="btnSaved" onclick="goTo(2)">
+      <svg width="33" height="33" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.5 10.5 C8.5 10.5 9 3.5 12.5 2.5 C14.5 2 15 4 13.5 6.5 L12.5 9 L16.5 9 C17.6 9 18.5 9.9 18.5 11 L17.5 16.5 C17.2 17.4 16.4 18 15.3 18 L7 18 C5.9 18 5 17.1 5 16 L5 11.5 C5 10.9 5.4 10.5 6 10.5 Z"/>
+      </svg>
+    </button>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// Panel navigation (bottom nav only)
+// ══════════════════════════════════════
+let current = 1; // 0=tasted, 1=fresh, 2=savor
+const track = document.getElementById('track');
+const pageBg = document.getElementById('pageBg');
+const btns = [
+  document.getElementById('btnRead'),
+  document.getElementById('btnHome'),
+  document.getElementById('btnSaved'),
+];
+
+const bgColors = ['#252525', '#F1F1F1', '#C0181E'];
+
+function goTo(idx) {
+  current = Math.max(0, Math.min(2, idx));
+  track.style.transform = `translateX(${-current * 100}vw)`;
+  pageBg.style.backgroundColor = bgColors[current];
+  btns.forEach((b, i) => {
+    b.classList.toggle('active', i === current);
+    b.classList.toggle('inactive', i !== current);
+  });
+  document.getElementById('bottomNav').classList.toggle('on-savor', current === 2);
+}
+goTo(1);
+
+// Bottom nav: tap handled by onclick, swipe handled here
+const nav = document.getElementById('bottomNav');
+let nx0 = 0;
+function navStart(x) { nx0 = x; }
+function navEnd(x) {
+  const dx = x - nx0;
+  if (Math.abs(dx) > 36) { if (dx < 0) goTo(current - 1); else goTo(current + 1); }
+}
+nav.addEventListener('touchstart', e => navStart(e.touches[0].clientX), { passive: true });
+nav.addEventListener('touchend',   e => navEnd(e.changedTouches[0].clientX), { passive: true });
+nav.addEventListener('mousedown',  e => navStart(e.clientX));
+nav.addEventListener('mouseup',    e => navEnd(e.clientX));
+
+// ══════════════════════════════════════
+// Card data — loaded from cards.json (generated by app.py)
+// ══════════════════════════════════════
+
+// ══════════════════════════════════════
+// Card stack rendering
+// ══════════════════════════════════════
+let cardQueue = [];
+const cardsArea = document.getElementById('cardsArea');
+
+function initials(name) { return name[0]; }
+
+function buildCard(data, zClass) {
+  const div = document.createElement('div');
+  div.className = `card ${zClass}`;
+
+  let inner = `
+    <div class="card-top">
+      <div class="avatar">${initials(data.author)}</div>
+      <div class="author-info">
+        <div class="author-name">${data.author}</div>
+        <div class="author-meta">${data.time}</div>
+      </div>
+      <div class="card-add-btn" onmousedown="event.stopPropagation()" onclick="window.open('${data.url}', '_blank')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+          <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
+        </svg>
+      </div>
+    </div>
+    <div class="card-title">${data.title}</div>`;
+
+  if (data.type === 'event') {
+    inner += `
+      <div class="card-event-badge">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#C0181E" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="2" width="8" height="7" rx="1"/><line x1="3" y1="1" x2="3" y2="3"/><line x1="7" y1="1" x2="7" y2="3"/><line x1="1" y1="5" x2="9" y2="5"/></svg>
+        이벤트
+      </div>
+      <div class="card-img-wrap">
+        <div class="card-img-bg" style="${data.imgStyle}">
+          <div class="card-img-overlay">
+            <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
+            <div class="card-subtitle">${data.subtitle}</div>
+          </div>
+        </div>
+      </div>`;
+  } else if (data.type === 'image') {
+    inner += `
+      <div class="card-img-wrap">
+        <div class="card-img-bg" style="${data.imgStyle}">
+          <div class="card-img-overlay">
+            <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
+            <div class="card-subtitle">${data.subtitle}</div>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    inner += `<div class="card-summary-wrap"><div class="card-summary">${data.summary}</div></div>`;
+  }
+
+  div.innerHTML = inner;
+  return div;
+}
+
+function renderCards() {
+  cardsArea.innerHTML = '';
+  const visible = cardQueue.slice(0, 3);
+  const classes = ['c1', 'c2', 'c3'];
+  // render back to front so c1 ends up on top in DOM
+  for (let i = visible.length - 1; i >= 0; i--) {
+    const card = buildCard(visible[i], classes[i]);
+    cardsArea.appendChild(card);
+    if (i === 0) attachDrag(card, visible[i]); // top card only
+  }
+  if (visible.length === 0) {
+    cardsArea.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#AAA;font-size:15px;">모든 카드를 확인했어요</div>';
+  }
+}
+
+// ══════════════════════════════════════
+// Add to list
+// ══════════════════════════════════════
+function updateCount(listSelector, delta) {
+  const panel = document.querySelector(listSelector).closest('.panel');
+  const countEl = panel.querySelector('.list-count');
+  const match = countEl.textContent.match(/(\d+)/);
+  if (match) {
+    const n = parseInt(match[1]) + delta;
+    countEl.textContent = countEl.textContent.replace(/\d+/, n);
+  }
+}
+
+function buildListItem(data, id) {
+  const item = document.createElement('div');
+  item.className = 'list-item';
+  if (id) item.dataset.id = id;
+  const url = data.url || data.link || '#';
+  item.innerHTML = `
+    <div class="list-item-hd" onclick="toggleList(this.parentElement)">
+      <div class="list-item-left">
+        <div class="list-item-author">${data.author || ''}</div>
+        <div class="list-item-title">${data.title}</div>
+      </div>
+      <div class="list-toggle">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-width="2.2" stroke-linecap="round">
+          <line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/>
+        </svg>
+      </div>
+    </div>
+    <div class="list-body">
+      <div class="list-body-inner">${data.summary || data.subtitle || ''}
+        <a class="list-body-link" href="${url}" target="_blank">원문 보기 →</a>
+      </div>
+    </div>`;
+  return item;
+}
+
+function addToList(listSelector, data) {
+  updateCount(listSelector, 1);
+  const list = document.querySelector(listSelector);
+  const item = buildListItem(data, null);
+  list.prepend(item);
+  attachListSwipe(item);
+
+  const listName = listSelector.includes('read-panel') ? 'digested' : 'savor';
+  fetch('/api/lists/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ list_name: listName, ...data }),
+  })
+    .then(r => r.json())
+    .then(({ id }) => { if (id) item.dataset.id = id; });
+}
+
+// ══════════════════════════════════════
+// Card drag — single global handler
+// ══════════════════════════════════════
+let dragCard = null, dragData = null, dragStartX = 0, dragCurX = 0, isDragging = false;
+
+function attachDrag(card, data) {
+  card.addEventListener('mousedown', e => {
+    dragCard = card; dragData = data;
+    dragStartX = e.clientX; dragCurX = 0; isDragging = true;
+    card.style.transition = 'none';
+    e.preventDefault();
+  });
+  card.addEventListener('touchstart', e => {
+    dragCard = card; dragData = data;
+    dragStartX = e.touches[0].clientX; dragCurX = 0; isDragging = true;
+    card.style.transition = 'none';
+  }, { passive: true });
+}
+
+function globalMove(x) {
+  if (!isDragging || !dragCard) return;
+  dragCurX = x - dragStartX;
+  const rotate = dragCurX * 0.06;
+  dragCard.style.transform = `translateX(${dragCurX}px) rotate(${rotate}deg) scale(1)`;
+}
+
+function globalEnd() {
+  if (!isDragging || !dragCard) return;
+  isDragging = false;
+  dragCard.style.transition = '';
+
+  const threshold = 90;
+  const card = dragCard, data = dragData;
+  dragCard = null; dragData = null;
+
+  if (dragCurX < -threshold) {
+    card.style.transform = `translateX(-140vw) rotate(-20deg)`;
+    card.style.opacity = '0';
+    setTimeout(() => { cardQueue.shift(); addToList('.read-panel .list-scroll', data); renderCards(); centerCards(); }, 320);
+  } else if (dragCurX > threshold) {
+    card.style.transform = `translateX(140vw) rotate(20deg)`;
+    card.style.opacity = '0';
+    setTimeout(() => { cardQueue.shift(); addToList('.saved-panel .list-scroll', data); renderCards(); centerCards(); }, 320);
+  } else {
+    card.style.transform = '';
+    if (Math.abs(dragCurX) < 8 && data.url) window.open(data.url, '_blank');
+  }
+}
+
+window.addEventListener('mousemove', e => globalMove(e.clientX));
+window.addEventListener('mouseup',   () => globalEnd());
+window.addEventListener('touchmove', e => globalMove(e.touches[0].clientX), { passive: true });
+window.addEventListener('touchend',  () => globalEnd(), { passive: true });
+
+// ── Accordion ──
+let _listSwipeMoved = false;
+
+function toggleList(item) {
+  if (_listSwipeMoved) return;
+  const wasOpen = item.classList.contains('open');
+  item.parentElement.querySelectorAll('.list-item.open').forEach(el => el.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+// ── List swipe-to-delete ──
+function attachListSwipe(item) {
+  const hd = item.querySelector('.list-item-hd');
+  let startX = 0, dx = 0, active = false;
+  const THRESHOLD = 80;
+
+  function start(x) {
+    startX = x; dx = 0; active = true;
+    _listSwipeMoved = false;
+    hd.style.transition = 'none';
+  }
+  function move(x) {
+    if (!active) return;
+    dx = Math.min(0, x - startX);
+    hd.style.transform = `translateX(${dx}px)`;
+    hd.style.opacity = String(Math.max(0, 1 + dx / 160));
+    if (Math.abs(dx) > 8) _listSwipeMoved = true;
+  }
+  function end() {
+    if (!active) return;
+    active = false;
+    hd.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    if (dx < -THRESHOLD) {
+      hd.style.transform = 'translateX(-110%)';
+      hd.style.opacity = '0';
+      const h = item.offsetHeight;
+      item.style.overflow = 'hidden';
+      item.style.maxHeight = h + 'px';
+      item.style.transition = 'max-height 0.35s ease, opacity 0.2s ease';
+      requestAnimationFrame(() => { item.style.maxHeight = '0'; item.style.opacity = '0'; });
+      setTimeout(() => {
+        const panel = item.closest('.panel');
+        const countEl = panel.querySelector('.list-count');
+        const m = countEl.textContent.match(/(\d+)/);
+        if (m) countEl.textContent = countEl.textContent.replace(/\d+/, Math.max(0, parseInt(m[1]) - 1));
+        if (item.dataset.id) {
+          fetch('/api/lists/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: parseInt(item.dataset.id) }),
+          });
+        }
+        item.remove();
+      }, 370);
+    } else {
+      hd.style.transform = '';
+      hd.style.opacity = '';
+    }
+  }
+
+  hd.addEventListener('touchstart', e => start(e.touches[0].clientX), { passive: true });
+  hd.addEventListener('touchmove',  e => move(e.touches[0].clientX),  { passive: true });
+  hd.addEventListener('touchend',   end, { passive: true });
+
+  hd.addEventListener('mousedown', e => {
+    start(e.clientX);
+    const onMM = ev => move(ev.clientX);
+    const onMU = () => { end(); window.removeEventListener('mousemove', onMM); window.removeEventListener('mouseup', onMU); };
+    window.addEventListener('mousemove', onMM);
+    window.addEventListener('mouseup', onMU);
+  });
+}
+
+// ── Fit title text to full width ──
+function fitTitles() {
+  document.querySelectorAll('.home-header h1, .list-header h1').forEach(el => {
+    el.style.fontSize = '100px';
+    const parent = el.parentElement;
+    const style = getComputedStyle(parent);
+    const available = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const ratio = available / el.scrollWidth;
+    el.style.fontSize = Math.floor(100 * ratio) + 'px';
+  });
+}
+
+document.fonts.ready.then(() => {
+  fitTitles();
+  window.addEventListener('resize', fitTitles);
+});
+
+// ── Center card stack vertically in cards-area ──
+function centerCards() {
+  const area = document.getElementById('cardsArea');
+  const c1 = area.querySelector('.card.c1');
+  if (!c1) return;
+  requestAnimationFrame(() => {
+    const areaH = area.offsetHeight;
+    const cardH = c1.offsetHeight;
+    const topOffset = Math.max(60, Math.round(areaH * 0.45 - cardH / 2));
+    area.querySelectorAll('.card').forEach(card => { card.style.top = topOffset + 'px'; });
+  });
+}
+
+// ── Load saved lists from server ──
+function loadSavedLists() {
+  fetch('/api/lists')
+    .then(r => r.json())
+    .then(({ digested, savor }) => {
+      [
+        { items: digested, selector: '.read-panel .list-scroll' },
+        { items: savor,    selector: '.saved-panel .list-scroll' },
+      ].forEach(({ items, selector }) => {
+        items.forEach(data => {
+          const list = document.querySelector(selector);
+          const el = buildListItem(data, data.id);
+          list.prepend(el);
+          attachListSwipe(el);
+          updateCount(selector, 1);
+        });
+      });
+    })
+    .catch(() => {});
+}
+
+// ── Init ──
+window.addEventListener('resize', centerCards);
+document.querySelectorAll('.list-item').forEach(attachListSwipe);
+
+fetch('/api/cards')
+  .then(r => r.json())
+  .then(data => { cardQueue = data; renderCards(); centerCards(); })
+  .catch(() => { renderCards(); centerCards(); });
+
+loadSavedLists();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
+</script>
+</body>
+</html>

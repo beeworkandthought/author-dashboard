@@ -3,6 +3,8 @@ import urllib.parse
 import re
 import webbrowser
 import os
+import json
+import time as _time
 from datetime import datetime
 from collections import Counter
 
@@ -15,6 +17,30 @@ AUTHORS = [
 ]
 
 EVENT_KEYWORDS = ["사인회", "낭독회", "북토크", "시사회", "강연", "토크콘서트", "팬미팅", "출판기념", "이벤트", "행사", "공연"]
+
+EVENT_COLORS = [
+    "linear-gradient(155deg, #C0181E 0%, #7A0A0E 100%)",
+    "linear-gradient(155deg, #1a1a2e 0%, #16213e 100%)",
+    "linear-gradient(155deg, #2d4a22 0%, #1a2e14 100%)",
+    "linear-gradient(155deg, #3d2b1f 0%, #1f1510 100%)",
+]
+
+def to_relative_time(published_parsed):
+    if not published_parsed:
+        return ""
+    try:
+        dt = datetime.fromtimestamp(_time.mktime(published_parsed))
+        diff = datetime.now() - dt
+        hours = int(diff.total_seconds() / 3600)
+        if hours < 1:
+            return "방금 전"
+        elif hours < 24:
+            return f"{hours}시간 전"
+        else:
+            days = hours // 24
+            return f"{days}일 전"
+    except Exception:
+        return ""
 
 STOPWORDS = {
     "작가", "작품", "소설", "기자", "뉴스", "기사", "대한", "관련", "위한", "하는", "있는",
@@ -41,6 +67,7 @@ def fetch_news(query, max_items=15):
             "title": title,
             "link": entry.get("link", "#"),
             "published": entry.get("published", "")[:16],
+            "relative_time": to_relative_time(entry.get("published_parsed")),
             "source": source or entry.get("source", {}).get("title", ""),
         })
     return items
@@ -66,6 +93,35 @@ def get_author_data(author):
     keywords = [w for w, _ in counter.most_common(10)]
 
     return {"news": general[:10], "events": events[:5], "keywords": keywords}
+
+
+def build_cards_json(authors_data):
+    cards = []
+    color_idx = 0
+    for name, data in authors_data.items():
+        for item in data["events"]:
+            matched_tag = next((kw for kw in EVENT_KEYWORDS if kw in item["title"]), "이벤트")
+            cards.append({
+                "author": name,
+                "time": item.get("relative_time", ""),
+                "title": item["title"],
+                "type": "event",
+                "tag": matched_tag,
+                "subtitle": f"{item['source']} · {item['published']}",
+                "imgStyle": f"background: {EVENT_COLORS[color_idx % len(EVENT_COLORS)]};",
+                "url": item["link"],
+            })
+            color_idx += 1
+        for item in data["news"]:
+            cards.append({
+                "author": name,
+                "time": item.get("relative_time", ""),
+                "title": item["title"],
+                "type": "text",
+                "summary": item["source"],
+                "url": item["link"],
+            })
+    return cards
 
 
 def build_html(authors_data):
@@ -290,6 +346,11 @@ def main():
     output_path = os.path.join(os.path.dirname(__file__), "dashboard.html")
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(build_html(authors_data))
+
+    cards_path = os.path.join(os.path.dirname(__file__), "cards.json")
+    with open(cards_path, "w", encoding="utf-8") as f:
+        json.dump(build_cards_json(authors_data), f, ensure_ascii=False, indent=2)
+    print(f"cards.json 생성 완료: {cards_path}")
 
     print(f"\n완료! 대시보드를 브라우저로 엽니다...")
     webbrowser.open(f"file://{output_path}")
