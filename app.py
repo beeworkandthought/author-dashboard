@@ -7,10 +7,19 @@ import json
 import time as _time
 from datetime import datetime
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
+try:
+    import requests
+    from bs4 import BeautifulSoup
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 AUTHORS = [
     {"name": "한강", "queries": ["한강 작가", "Han Kang author"]},
     {"name": "박해영", "queries": ["박해영 작가", "박해영 극본"]},
+    {"name": "우디 앨런", "queries": ["우디 앨런", "Woody Allen"]},
+    {"name": "웨스 앤더슨", "queries": ["웨스 앤더슨", "Wes Anderson"]},
     {"name": "무라카미 하루키", "queries": ["무라카미 하루키", "村上春樹"]},
     {"name": "다자이 오사무", "queries": ["다자이 오사무", "太宰治"]},
     {"name": "베르나르 베르베르", "queries": ["베르나르 베르베르", "Bernard Werber"]},
@@ -50,7 +59,21 @@ STOPWORDS = {
 }
 
 
-def fetch_news(query, max_items=15):
+def fetch_summary(url, timeout=5):
+    try:
+        r = requests.get(url, timeout=timeout, allow_redirects=True,
+                         headers={'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'})
+        soup = BeautifulSoup(r.text, 'html.parser')
+        for attrs in [{'property': 'og:description'}, {'name': 'description'}]:
+            tag = soup.find('meta', attrs=attrs)
+            if tag and tag.get('content', '').strip():
+                return tag['content'].strip()[:300]
+    except Exception:
+        pass
+    return ''
+
+
+def fetch_news(query, max_items=8):
     encoded = urllib.parse.quote(query)
     url = f"https://news.google.com/rss/search?q={encoded}&hl=ko&gl=KR&ceid=KR:ko"
     feed = feedparser.parse(url)
@@ -69,7 +92,19 @@ def fetch_news(query, max_items=15):
             "published": entry.get("published", "")[:16],
             "relative_time": to_relative_time(entry.get("published_parsed")),
             "source": source or entry.get("source", {}).get("title", ""),
+            "summary": "",
         })
+
+    # 병렬로 각 기사 요약 수집
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(fetch_summary, item["link"]): i for i, item in enumerate(items)}
+        for future in as_completed(futures, timeout=15):
+            idx = futures[future]
+            try:
+                items[idx]["summary"] = future.result()
+            except Exception:
+                pass
+
     return items
 
 
@@ -98,29 +133,43 @@ def get_author_data(author):
 def build_cards_json(authors_data):
     cards = []
     color_idx = 0
+
     for name, data in authors_data.items():
+        mixed_items = []
+
+        for item in data["news"]:
+            mixed_items.append({
+                "author": name,
+                "time": item.get("relative_time", ""),
+                "title": item["title"],
+                "type": "text",
+                "tag": "뉴스",
+                "summary": item.get("summary") or f"{item['source']} · {item['published']}",
+                "url": item["link"],
+                "published": item.get("published", ""),
+            })
+
         for item in data["events"]:
             matched_tag = next((kw for kw in EVENT_KEYWORDS if kw in item["title"]), "이벤트")
-            cards.append({
+            mixed_items.append({
                 "author": name,
                 "time": item.get("relative_time", ""),
                 "title": item["title"],
                 "type": "event",
                 "tag": matched_tag,
                 "subtitle": f"{item['source']} · {item['published']}",
+                "summary": item.get("summary") or f"{item['source']} · {item['published']}",
                 "imgStyle": f"background: {EVENT_COLORS[color_idx % len(EVENT_COLORS)]};",
                 "url": item["link"],
+                "published": item.get("published", ""),
             })
             color_idx += 1
-        for item in data["news"]:
-            cards.append({
-                "author": name,
-                "time": item.get("relative_time", ""),
-                "title": item["title"],
-                "type": "text",
-                "summary": item["source"],
-                "url": item["link"],
-            })
+
+        cards.extend(mixed_items)
+
+    # 전체 카드를 최신순에 가깝게 섞기
+    cards.sort(key=lambda x: x.get("published", ""), reverse=True)
+
     return cards
 
 
