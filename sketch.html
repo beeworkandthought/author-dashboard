@@ -957,7 +957,7 @@ setTimeout(() => {
     .then(r => r.json())
     .then(data => { cardQueue = data; renderCards(); centerCards(); })
     .catch(() => { renderCards(); centerCards(); });
-}, 2700);
+}, 2500);
 loadSavedLists();
 
 if ('serviceWorker' in navigator) {
