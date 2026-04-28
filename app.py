@@ -59,18 +59,25 @@ STOPWORDS = {
 }
 
 
-def fetch_summary(url, timeout=5):
+def fetch_meta(url, timeout=5):
     try:
         r = requests.get(url, timeout=timeout, allow_redirects=True,
                          headers={'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'})
         soup = BeautifulSoup(r.text, 'html.parser')
+        summary = ''
         for attrs in [{'property': 'og:description'}, {'name': 'description'}]:
             tag = soup.find('meta', attrs=attrs)
             if tag and tag.get('content', '').strip():
-                return tag['content'].strip()[:300]
+                summary = tag['content'].strip()[:300]
+                break
+        image = ''
+        img_tag = soup.find('meta', {'property': 'og:image'})
+        if img_tag and img_tag.get('content', '').strip():
+            image = img_tag['content'].strip()
+        return summary, image
     except Exception:
         pass
-    return ''
+    return '', ''
 
 
 def fetch_news(query, max_items=8):
@@ -95,13 +102,15 @@ def fetch_news(query, max_items=8):
             "summary": "",
         })
 
-    # 병렬로 각 기사 요약 수집
+    # 병렬로 각 기사 요약 및 이미지 수집
     with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(fetch_summary, item["link"]): i for i, item in enumerate(items)}
+        futures = {ex.submit(fetch_meta, item["link"]): i for i, item in enumerate(items)}
         for future in as_completed(futures, timeout=15):
             idx = futures[future]
             try:
-                items[idx]["summary"] = future.result()
+                summary, image = future.result()
+                items[idx]["summary"] = summary
+                items[idx]["image"] = image
             except Exception:
                 pass
 
@@ -138,6 +147,8 @@ def build_cards_json(authors_data):
         mixed_items = []
 
         for item in data["news"]:
+            raw_img = item.get("image", "")
+            proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
             mixed_items.append({
                 "author": name,
                 "time": item.get("relative_time", ""),
@@ -145,12 +156,15 @@ def build_cards_json(authors_data):
                 "type": "text",
                 "tag": "뉴스",
                 "summary": item.get("summary") or f"{item['source']} · {item['published']}",
+                "image": proxied_img,
                 "url": item["link"],
                 "published": item.get("published", ""),
             })
 
         for item in data["events"]:
             matched_tag = next((kw for kw in EVENT_KEYWORDS if kw in item["title"]), "이벤트")
+            raw_img = item.get("image", "")
+            proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
             mixed_items.append({
                 "author": name,
                 "time": item.get("relative_time", ""),
@@ -160,6 +174,7 @@ def build_cards_json(authors_data):
                 "subtitle": f"{item['source']} · {item['published']}",
                 "summary": item.get("summary") or f"{item['source']} · {item['published']}",
                 "imgStyle": f"background: {EVENT_COLORS[color_idx % len(EVENT_COLORS)]};",
+                "image": proxied_img,
                 "url": item["link"],
                 "published": item.get("published", ""),
             })
