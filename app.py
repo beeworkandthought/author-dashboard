@@ -1,5 +1,5 @@
 import feedparser
-import webbrowser
+import urllib.parse
 import os
 import json
 import time as _time
@@ -44,28 +44,6 @@ def to_relative_time(published_parsed):
         return ""
 
 
-<<<<<<< HEAD
-
-def fetch_meta(url, timeout=5):
-    try:
-        r = requests.get(url, timeout=timeout, allow_redirects=True,
-                         headers={'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'})
-        soup = BeautifulSoup(r.text, 'html.parser')
-        summary = ''
-        for attrs in [{'property': 'og:description'}, {'name': 'description'}]:
-            tag = soup.find('meta', attrs=attrs)
-            if tag and tag.get('content', '').strip():
-                summary = tag['content'].strip()[:300]
-                break
-        image = ''
-        img_tag = soup.find('meta', {'property': 'og:image'})
-        if img_tag and img_tag.get('content', '').strip():
-            image = img_tag['content'].strip()
-        return summary, image
-    except Exception:
-        pass
-    return '', ''
-=======
 def fetch_og_data(url, timeout=5):
     if not HAS_REQUESTS:
         return "", ""
@@ -88,7 +66,6 @@ def fetch_og_data(url, timeout=5):
         return image, description
     except Exception:
         return "", ""
->>>>>>> d915a94bb61e0e525f929117f75b473fe6deddc7
 
 
 def fetch_feed_items(feed_config, max_items=10):
@@ -116,22 +93,6 @@ def fetch_feed_items(feed_config, max_items=10):
             "image": image,
             "summary": "",
         })
-<<<<<<< HEAD
-
-    # 병렬로 각 기사 요약 및 이미지 수집
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        futures = {ex.submit(fetch_meta, item["link"]): i for i, item in enumerate(items)}
-        for future in as_completed(futures, timeout=15):
-            idx = futures[future]
-            try:
-                summary, image = future.result()
-                items[idx]["summary"] = summary
-                items[idx]["image"] = image
-            except Exception:
-                pass
-
-=======
->>>>>>> d915a94bb61e0e525f929117f75b473fe6deddc7
     return items
 
 
@@ -158,68 +119,27 @@ def fetch_all_feeds():
 def build_cards_json(items):
     cards = []
     for item in items:
-        has_image = bool(item.get("image"))
+        raw_img = item.get("image", "")
+        proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
         img_style = (
-            f'background: url("{item["image"]}") center/cover #1a1a1a;'
-            if has_image else ""
+            f'background: url("{proxied_img}") center/cover #1a1a1a;'
+            if proxied_img else ""
         )
         cards.append({
             "author": item["source"],
             "avatarColor": item.get("avatarColor", "#C0181E"),
             "time": item.get("relative_time", ""),
             "title": item["title"],
-            "type": "image" if has_image else "text",
+            "type": "image" if proxied_img else "text",
             "tag": "디자인",
             "summary": item.get("summary", ""),
             "imgStyle": img_style,
+            "image": proxied_img,
             "subtitle": f"{item['source']} · {item.get('published', '')}",
             "url": item["link"],
             "published": item.get("published", ""),
         })
 
-<<<<<<< HEAD
-    for name, data in authors_data.items():
-        mixed_items = []
-
-        for item in data["news"]:
-            raw_img = item.get("image", "")
-            proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
-            mixed_items.append({
-                "author": name,
-                "time": item.get("relative_time", ""),
-                "title": item["title"],
-                "type": "text",
-                "tag": "뉴스",
-                "summary": item.get("summary") or f"{item['source']} · {item['published']}",
-                "image": proxied_img,
-                "url": item["link"],
-                "published": item.get("published", ""),
-            })
-
-        for item in data["events"]:
-            matched_tag = next((kw for kw in EVENT_KEYWORDS if kw in item["title"]), "이벤트")
-            raw_img = item.get("image", "")
-            proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
-            mixed_items.append({
-                "author": name,
-                "time": item.get("relative_time", ""),
-                "title": item["title"],
-                "type": "event",
-                "tag": matched_tag,
-                "subtitle": f"{item['source']} · {item['published']}",
-                "summary": item.get("summary") or f"{item['source']} · {item['published']}",
-                "imgStyle": f"background: {EVENT_COLORS[color_idx % len(EVENT_COLORS)]};",
-                "image": proxied_img,
-                "url": item["link"],
-                "published": item.get("published", ""),
-            })
-            color_idx += 1
-
-        cards.extend(mixed_items)
-
-    # 전체 카드를 최신순에 가깝게 섞기
-=======
->>>>>>> d915a94bb61e0e525f929117f75b473fe6deddc7
     cards.sort(key=lambda x: x.get("published", ""), reverse=True)
     return cards
 
