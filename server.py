@@ -5,7 +5,7 @@ import sqlite3
 
 from flask import Flask, jsonify, request, send_from_directory, Response
 from apscheduler.schedulers.background import BackgroundScheduler
-from app import get_author_data, build_cards_json, AUTHORS
+from app import fetch_all_feeds, build_cards_json, DESIGN_FEEDS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get('DATA_DIR', os.path.join(BASE_DIR, 'data'))
@@ -44,12 +44,12 @@ def init_db():
 
 
 def refresh_cards():
-    print('뉴스 업데이트 중...')
+    print('피드 업데이트 중...')
     try:
-        authors_data = {a['name']: get_author_data(a) for a in AUTHORS}
+        items = fetch_all_feeds()
         os.makedirs(DATA_DIR, exist_ok=True)
         with open(CARDS_PATH, 'w', encoding='utf-8') as f:
-            json.dump(build_cards_json(authors_data), f, ensure_ascii=False, indent=2)
+            json.dump(build_cards_json(items), f, ensure_ascii=False, indent=2)
         print('카드 업데이트 완료')
     except Exception as e:
         print(f'업데이트 실패: {e}')
@@ -60,8 +60,6 @@ def cards_stale():
         return True
     return (_time.time() - os.path.getmtime(CARDS_PATH)) > 23 * 3600
 
-
-# ── Routes ─────────────────────────────────────────────
 
 @app.route('/')
 def index():
@@ -140,8 +138,6 @@ def api_remove():
     con.close()
     return jsonify({'ok': True})
 
-
-# ── Startup ─────────────────────────────────────────────
 
 init_db()
 if cards_stale():
