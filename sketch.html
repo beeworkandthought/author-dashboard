@@ -645,7 +645,7 @@ function buildCard(data, zClass) {
 
   let inner = `
     <div class="card-top">
-      <div class="avatar">${initials(data.author)}</div>
+     <div class="avatar" style="background: ${data.avatarColor || '#C0181E'}">${initials(data.author)}</div>
       <div class="author-info">
         <div class="author-name">${data.author}</div>
         <div class="author-meta">${data.time}</div>
