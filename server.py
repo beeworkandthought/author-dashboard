@@ -3,6 +3,7 @@ import json
 import time as _time
 import sqlite3
 
+import requests
 from flask import Flask, jsonify, request, send_from_directory, Response
 from apscheduler.schedulers.background import BackgroundScheduler
 from app import get_author_data, build_cards_json, AUTHORS
@@ -86,6 +87,20 @@ def manifest():
 @app.route('/icon.svg')
 def icon():
     return send_from_directory(BASE_DIR, 'icon.svg')
+
+
+@app.route('/api/img-proxy')
+def img_proxy():
+    url = request.args.get('url', '')
+    if not url or not url.startswith(('http://', 'https://')):
+        return '', 400
+    try:
+        resp = requests.get(url, timeout=8, stream=True,
+                            headers={'User-Agent': 'Mozilla/5.0'})
+        content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        return Response(resp.content, content_type=content_type)
+    except Exception:
+        return '', 502
 
 
 @app.route('/api/cards')
