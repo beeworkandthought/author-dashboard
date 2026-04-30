@@ -665,7 +665,7 @@ function buildCard(data, zClass) {
         이벤트
       </div>
       <div class="card-img-wrap">
-        <div class="card-img-bg" style="${data.imgStyle}">
+        <div class="card-img-bg">
           <div class="card-img-overlay">
             <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
             <div class="card-subtitle">${data.subtitle}</div>
@@ -675,7 +675,7 @@ function buildCard(data, zClass) {
   } else if (data.type === 'image') {
     inner += `
       <div class="card-img-wrap">
-        <div class="card-img-bg" style="${data.imgStyle}">
+        <div class="card-img-bg">
           <div class="card-img-overlay">
             <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
             <div class="card-subtitle">${data.subtitle}</div>
@@ -687,6 +687,16 @@ function buildCard(data, zClass) {
   }
 
   div.innerHTML = inner;
+
+  if (data.image) {
+    const imgBg = div.querySelector('.card-img-bg');
+    if (imgBg) {
+      imgBg.style.backgroundImage = `url(${data.image})`;
+      imgBg.style.backgroundSize = 'cover';
+      imgBg.style.backgroundPosition = 'center';
+    }
+  }
+
   return div;
 }
 
