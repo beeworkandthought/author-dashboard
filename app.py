@@ -146,7 +146,7 @@ def build_cards_json(items):
         raw_img = item.get("image", "")
         proxied_img = f"/api/img-proxy?url={urllib.parse.quote(raw_img, safe='')}" if raw_img else ""
         img_style = (
-            f'background: url("{proxied_img}") center/cover #1a1a1a;'
+            f"background: url('{proxied_img}') center/cover #1a1a1a;"
             if proxied_img else ""
         )
         cards.append({
