@@ -9,7 +9,7 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Diphylleia&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Diphylleia&family=Noto+Sans+KR:wght@400;700&family=Google+Sans+Flex&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -158,8 +158,9 @@ html, body {
   font-weight: 800;
   color: #111;
   line-height: 1.32;
-  padding: 0 16px 14px;
+  padding: 16px 16px 14px;
   letter-spacing: -0.3px;
+  font-family: 'Google Sans Flex', 'Noto Sans KR', sans-serif;
 }
 
 /* Card with image */
@@ -643,20 +644,7 @@ function buildCard(data, zClass) {
   const div = document.createElement('div');
   div.className = `card ${zClass}`;
 
-  let inner = `
-    <div class="card-top">
-     <div class="avatar" style="background: ${data.avatarColor || '#C0181E'}">${initials(data.author)}</div>
-      <div class="author-info">
-        <div class="author-name">${data.author}</div>
-        <div class="author-meta">${data.time}</div>
-      </div>
-      <div class="card-add-btn" onmousedown="event.stopPropagation()" onclick="window.open('${data.url}', '_blank')">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
-          <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-        </svg>
-      </div>
-    </div>
-    <div class="card-title">${data.title}</div>`;
+  let inner = `<div class="card-title">${data.title}</div>`;
 
   if (data.type === 'event') {
     inner += `
@@ -667,7 +655,6 @@ function buildCard(data, zClass) {
       <div class="card-img-wrap">
         <div class="card-img-bg">
           <div class="card-img-overlay">
-            <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
             <div class="card-subtitle">${data.subtitle}</div>
           </div>
         </div>
@@ -677,7 +664,6 @@ function buildCard(data, zClass) {
       <div class="card-img-wrap">
         <div class="card-img-bg">
           <div class="card-img-overlay">
-            <div class="card-tag"><div class="card-tag-dot"></div>${data.tag}</div>
             <div class="card-subtitle">${data.subtitle}</div>
           </div>
         </div>
