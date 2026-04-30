@@ -94,8 +94,13 @@ def img_proxy():
         return '', 400
     try:
         resp = requests.get(url, timeout=8, stream=True,
-                            headers={'User-Agent': 'Mozilla/5.0'})
+                            headers={'User-Agent': 'Mozilla/5.0',
+                                     'Referer': url})
+        if resp.status_code != 200:
+            return '', 502
         content_type = resp.headers.get('Content-Type', 'image/jpeg')
+        if not content_type.startswith('image/'):
+            return '', 502
         return Response(resp.content, content_type=content_type)
     except Exception:
         return '', 502

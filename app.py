@@ -3,6 +3,7 @@ import urllib.parse
 import os
 import json
 import time as _time
+import re
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
@@ -11,6 +12,17 @@ try:
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
+
+
+def extract_first_img(html):
+    if not html:
+        return ""
+    m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', html, re.IGNORECASE)
+    if m:
+        src = m.group(1)
+        if not src.startswith("data:"):
+            return src
+    return ""
 
 DESIGN_FEEDS = [
     {
@@ -78,10 +90,22 @@ def fetch_feed_items(feed_config, max_items=10):
                 image = mc["url"]
                 break
         if not image:
+            for mt in getattr(entry, "media_thumbnail", []):
+                if mt.get("url", ""):
+                    image = mt["url"]
+                    break
+        if not image:
             for enc in getattr(entry, "enclosures", []):
                 if enc.get("type", "").startswith("image"):
                     image = enc.get("href", "")
                     break
+        if not image:
+            for content_item in getattr(entry, "content", []):
+                image = extract_first_img(content_item.get("value", ""))
+                if image:
+                    break
+        if not image:
+            image = extract_first_img(getattr(entry, "summary", "") or "")
 
         items.append({
             "title": entry.get("title", "").strip(),
