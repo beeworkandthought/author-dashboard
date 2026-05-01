@@ -133,7 +133,14 @@ def api_cards():
 @app.route('/api/cards/refresh', methods=['POST'])
 def api_cards_refresh():
     refresh_cards()
-    return jsonify(get_unseen_cards())
+    unseen = get_unseen_cards()
+    if unseen:
+        return jsonify(unseen)
+    # 안 본 카드가 없으면 전체 반환 (seen 필터 없이)
+    if not os.path.exists(CARDS_PATH):
+        return jsonify([])
+    with open(CARDS_PATH, encoding='utf-8') as f:
+        return jsonify(json.load(f))
 
 
 @app.route('/api/lists')
