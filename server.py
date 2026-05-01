@@ -40,6 +40,12 @@ def init_db():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    con.execute('''
+        CREATE TABLE IF NOT EXISTS seen_cards (
+            url         TEXT PRIMARY KEY,
+            seen_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     con.commit()
     con.close()
 
@@ -112,8 +118,12 @@ def api_cards():
         refresh_cards()
     if not os.path.exists(CARDS_PATH):
         return jsonify([])
+    con = get_db()
+    seen = {row[0] for row in con.execute('SELECT url FROM seen_cards').fetchall()}
+    con.close()
     with open(CARDS_PATH, encoding='utf-8') as f:
-        return jsonify(json.load(f))
+        cards = json.load(f)
+    return jsonify([c for c in cards if c.get('url') not in seen])
 
 
 @app.route('/api/lists')
@@ -145,6 +155,8 @@ def api_add():
          d.get('imgStyle'), d.get('type'))
     )
     row_id = cur.lastrowid
+    if d.get('url'):
+        con.execute('INSERT OR IGNORE INTO seen_cards (url) VALUES (?)', (d.get('url'),))
     con.commit()
     con.close()
     return jsonify({'ok': True, 'id': row_id})
