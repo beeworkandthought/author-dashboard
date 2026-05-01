@@ -80,7 +80,7 @@ def fetch_og_data(url, timeout=5):
         return "", ""
 
 
-def fetch_feed_items(feed_config, max_items=10):
+def fetch_feed_items(feed_config, max_items=20):
     feed = feedparser.parse(feed_config["url"])
     items = []
     for entry in feed.entries[:max_items]:

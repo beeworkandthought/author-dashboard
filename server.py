@@ -112,18 +112,28 @@ def img_proxy():
         return '', 502
 
 
-@app.route('/api/cards')
-def api_cards():
-    if cards_stale():
-        refresh_cards()
+def get_unseen_cards():
     if not os.path.exists(CARDS_PATH):
-        return jsonify([])
+        return []
     con = get_db()
     seen = {row[0] for row in con.execute('SELECT url FROM seen_cards').fetchall()}
     con.close()
     with open(CARDS_PATH, encoding='utf-8') as f:
         cards = json.load(f)
-    return jsonify([c for c in cards if c.get('url') not in seen])
+    return [c for c in cards if c.get('url') not in seen]
+
+
+@app.route('/api/cards')
+def api_cards():
+    if cards_stale():
+        refresh_cards()
+    return jsonify(get_unseen_cards())
+
+
+@app.route('/api/cards/refresh', methods=['POST'])
+def api_cards_refresh():
+    refresh_cards()
+    return jsonify(get_unseen_cards())
 
 
 @app.route('/api/lists')

@@ -697,8 +697,70 @@ function renderCards() {
     if (i === 0) attachDrag(card, visible[i]); // top card only
   }
   if (visible.length === 0) {
-    cardsArea.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#AAA;font-size:15px;">모든 카드를 확인했어요</div>';
+    showEmptyState();
   }
+}
+
+function showEmptyState() {
+  const el = document.createElement('div');
+  el.id = 'emptyState';
+  el.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;user-select:none;';
+  el.innerHTML = `
+    <div style="color:#AAA;font-size:15px;">모든 카드를 확인했어요</div>
+    <div style="color:#CCC;font-size:12px;">아래로 당기면 새 카드를 불러와요</div>`;
+  cardsArea.appendChild(el);
+  attachEmptyPull(el);
+}
+
+function attachEmptyPull(el) {
+  let startY = 0, dy = 0, pulling = false, loading = false;
+  const THRESHOLD = 72;
+
+  function start(y) { if (loading) return; startY = y; dy = 0; pulling = true; }
+  function move(y) {
+    if (!pulling || loading) return;
+    dy = Math.max(0, y - startY);
+    const clamped = Math.min(dy, THRESHOLD * 1.4);
+    el.style.transform = `translateY(${clamped * 0.45}px)`;
+    el.querySelector('div:last-child').textContent =
+      dy >= THRESHOLD ? '놓으면 불러와요 ↑' : '아래로 당기면 새 카드를 불러와요';
+  }
+  function end() {
+    if (!pulling || loading) return;
+    pulling = false;
+    el.style.transform = '';
+    if (dy >= THRESHOLD) loadMoreCards();
+  }
+
+  function loadMoreCards() {
+    loading = true;
+    el.querySelector('div').textContent = '불러오는 중...';
+    el.querySelector('div:last-child').textContent = '';
+    fetch('/api/cards/refresh', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.length === 0) {
+          el.querySelector('div').textContent = '새 카드가 없어요';
+          el.querySelector('div:last-child').textContent = '나중에 다시 확인해봐요';
+          loading = false;
+        } else {
+          cardQueue = data;
+          renderCards();
+          centerCards();
+        }
+      })
+      .catch(() => {
+        el.querySelector('div').textContent = '불러오기 실패';
+        loading = false;
+      });
+  }
+
+  el.addEventListener('touchstart', e => start(e.touches[0].clientY), { passive: true });
+  el.addEventListener('touchmove',  e => move(e.touches[0].clientY),  { passive: true });
+  el.addEventListener('touchend',   end, { passive: true });
+  el.addEventListener('mousedown',  e => start(e.clientY));
+  window.addEventListener('mousemove', e => { if (pulling) move(e.clientY); });
+  window.addEventListener('mouseup',   end);
 }
 
 // ══════════════════════════════════════
