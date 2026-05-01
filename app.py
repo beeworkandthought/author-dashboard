@@ -31,9 +31,44 @@ DESIGN_FEEDS = [
         "avatarColor": "#1a1a1a",
     },
     {
+        "name": "Dezeen Architecture",
+        "url": "https://www.dezeen.com/architecture/feed/",
+        "avatarColor": "#444444",
+    },
+    {
         "name": "Designboom",
         "url": "https://www.designboom.com/technology/feed/",
         "avatarColor": "#e63d27",
+    },
+    {
+        "name": "It's Nice That",
+        "url": "https://www.itsnicethat.com/rss",
+        "avatarColor": "#FF4F00",
+    },
+    {
+        "name": "Colossal",
+        "url": "https://www.thisiscolossal.com/feed/",
+        "avatarColor": "#2D6A4F",
+    },
+    {
+        "name": "Yanko Design",
+        "url": "https://www.yankodesign.com/feed/",
+        "avatarColor": "#0066CC",
+    },
+    {
+        "name": "Core77",
+        "url": "https://www.core77.com/rss",
+        "avatarColor": "#333333",
+    },
+    {
+        "name": "Creative Boom",
+        "url": "https://www.creativeboom.com/feed/",
+        "avatarColor": "#E91E8C",
+    },
+    {
+        "name": "Wallpaper*",
+        "url": "https://www.wallpaper.com/feeds/latest.rss",
+        "avatarColor": "#8B6914",
     },
 ]
 
@@ -80,7 +115,7 @@ def fetch_og_data(url, timeout=5):
         return "", ""
 
 
-def fetch_feed_items(feed_config, max_items=20):
+def fetch_feed_items(feed_config, max_items=10):
     feed = feedparser.parse(feed_config["url"])
     items = []
     for entry in feed.entries[:max_items]:
