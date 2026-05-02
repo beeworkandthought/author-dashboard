@@ -79,6 +79,11 @@ def refresh_cards():
         os.makedirs(DATA_DIR, exist_ok=True)
         with open(CARDS_PATH, 'w', encoding='utf-8') as f:
             json.dump(build_cards_json(items), f, ensure_ascii=False, indent=2)
+        # 커서를 첫 배치 다음으로 초기화
+        con = get_db()
+        con.execute('UPDATE feed_cursor SET offset = ? WHERE id = 1', (4,))
+        con.commit()
+        con.close()
         print('카드 업데이트 완료')
     except Exception as e:
         print(f'업데이트 실패: {e}')

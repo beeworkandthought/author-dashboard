@@ -141,7 +141,7 @@ def fetch_feed_items(feed_config, max_items=10):
 
 def fetch_all_feeds():
     all_items = []
-    for feed_config in DESIGN_FEEDS:
+    for feed_config in ALL_FEEDS[:BATCH_SIZE]:  # 첫 번째 배치만
         all_items.extend(fetch_feed_items(feed_config))
 
     with ThreadPoolExecutor(max_workers=10) as ex:
