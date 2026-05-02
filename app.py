@@ -13,6 +13,43 @@ try:
 except ImportError:
     HAS_REQUESTS = False
 
+try:
+    from deep_translator import GoogleTranslator
+    HAS_TRANSLATOR = True
+except ImportError:
+    HAS_TRANSLATOR = False
+
+
+def translate_ko(text):
+    if not HAS_TRANSLATOR or not text:
+        return text
+    try:
+        return GoogleTranslator(source='auto', target='ko').translate(text[:4500])
+    except Exception:
+        return text
+
+
+def translate_items(items):
+    """제목과 요약을 병렬로 번역."""
+    if not HAS_TRANSLATOR:
+        return items
+
+    def do_translate(i, item):
+        title = translate_ko(item.get('title', ''))
+        summary = translate_ko(item.get('summary', '')) if item.get('summary') else ''
+        return i, title, summary
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futures = {ex.submit(do_translate, i, item): i for i, item in enumerate(items)}
+        for future in as_completed(futures, timeout=30):
+            try:
+                i, title, summary = future.result()
+                items[i]['title'] = title
+                items[i]['summary'] = summary
+            except Exception:
+                pass
+    return items
+
 
 def extract_first_img(html):
     if not html:
@@ -156,7 +193,19 @@ def fetch_all_feeds():
             except Exception:
                 pass
 
+    translate_items(all_items)
     return all_items
+
+
+def fetch_feed_batch(offset):
+    """ALL_FEEDS에서 offset 기준 BATCH_SIZE개 피드 fetch. 끝에 닿으면 wrap."""
+    total = len(ALL_FEEDS)
+    feeds = [ALL_FEEDS[(offset + i) % total] for i in range(BATCH_SIZE)]
+    items = []
+    for feed_config in feeds:
+        items.extend(fetch_feed_items(feed_config))
+    translate_items(items)
+    return build_cards_json(items)
 
 
 def build_cards_json(items):
