@@ -6,7 +6,7 @@ import sqlite3
 import requests
 from flask import Flask, jsonify, request, send_from_directory, Response
 from apscheduler.schedulers.background import BackgroundScheduler
-from app import fetch_all_feeds, build_cards_json, fetch_extra_feeds, DESIGN_FEEDS
+from app import fetch_all_feeds, build_cards_json, fetch_feed_batch, ALL_FEEDS, DESIGN_FEEDS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get('DATA_DIR', os.path.join(BASE_DIR, 'data'))
@@ -46,6 +46,28 @@ def init_db():
             seen_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    con.execute('''
+        CREATE TABLE IF NOT EXISTS feed_cursor (
+            id      INTEGER PRIMARY KEY CHECK (id = 1),
+            offset  INTEGER NOT NULL DEFAULT 0
+        )
+    ''')
+    con.execute('INSERT OR IGNORE INTO feed_cursor (id, offset) VALUES (1, 0)')
+    con.commit()
+    con.close()
+
+
+def get_feed_offset():
+    con = get_db()
+    row = con.execute('SELECT offset FROM feed_cursor WHERE id = 1').fetchone()
+    con.close()
+    return row[0] if row else 0
+
+
+def advance_feed_offset():
+    con = get_db()
+    con.execute('UPDATE feed_cursor SET offset = (offset + ?) % ? WHERE id = 1',
+                (4, len(ALL_FEEDS)))
     con.commit()
     con.close()
 
@@ -132,17 +154,13 @@ def api_cards():
 
 @app.route('/api/cards/refresh', methods=['POST'])
 def api_cards_refresh():
-    refresh_cards()
-    unseen = get_unseen_cards()
-    if unseen:
-        return jsonify(unseen)
-    # 1차 피드 소진 → 2차 피드 실시간 fetch
-    extra = fetch_extra_feeds()
+    offset = get_feed_offset()
+    batch = fetch_feed_batch(offset)
+    advance_feed_offset()
     con = get_db()
     seen = {row[0] for row in con.execute('SELECT url FROM seen_cards').fetchall()}
     con.close()
-    unseen_extra = [c for c in extra if c.get('url') not in seen]
-    return jsonify(unseen_extra)
+    return jsonify([c for c in batch if c.get('url') not in seen])
 
 
 @app.route('/api/lists')

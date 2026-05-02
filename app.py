@@ -24,96 +24,35 @@ def extract_first_img(html):
             return src
     return ""
 
-DESIGN_FEEDS = [
-    {
-        "name": "Dezeen",
-        "url": "https://www.dezeen.com/technology/feed/",
-        "avatarColor": "#1a1a1a",
-    },
-    {
-        "name": "Dezeen Architecture",
-        "url": "https://www.dezeen.com/architecture/feed/",
-        "avatarColor": "#444444",
-    },
-    {
-        "name": "Designboom",
-        "url": "https://www.designboom.com/technology/feed/",
-        "avatarColor": "#e63d27",
-    },
-    {
-        "name": "It's Nice That",
-        "url": "https://www.itsnicethat.com/rss",
-        "avatarColor": "#FF4F00",
-    },
-    {
-        "name": "Colossal",
-        "url": "https://www.thisiscolossal.com/feed/",
-        "avatarColor": "#2D6A4F",
-    },
-    {
-        "name": "Yanko Design",
-        "url": "https://www.yankodesign.com/feed/",
-        "avatarColor": "#0066CC",
-    },
-    {
-        "name": "Core77",
-        "url": "https://www.core77.com/rss",
-        "avatarColor": "#333333",
-    },
-    {
-        "name": "Creative Boom",
-        "url": "https://www.creativeboom.com/feed/",
-        "avatarColor": "#E91E8C",
-    },
-    {
-        "name": "Wallpaper*",
-        "url": "https://www.wallpaper.com/feeds/latest.rss",
-        "avatarColor": "#8B6914",
-    },
+ALL_FEEDS = [
+    {"name": "Dezeen",                "url": "https://www.dezeen.com/technology/feed/",      "avatarColor": "#1a1a1a"},
+    {"name": "Dezeen Architecture",   "url": "https://www.dezeen.com/architecture/feed/",    "avatarColor": "#444444"},
+    {"name": "Dezeen Interiors",      "url": "https://www.dezeen.com/interiors/feed/",       "avatarColor": "#666666"},
+    {"name": "Dezeen Art & Design",   "url": "https://www.dezeen.com/art-design/feed/",      "avatarColor": "#888888"},
+    {"name": "Designboom",            "url": "https://www.designboom.com/technology/feed/",  "avatarColor": "#e63d27"},
+    {"name": "Designboom Architecture","url": "https://www.designboom.com/architecture/feed/","avatarColor": "#B03A2E"},
+    {"name": "Designboom Art",        "url": "https://www.designboom.com/art/feed/",         "avatarColor": "#6C3483"},
+    {"name": "It's Nice That",        "url": "https://www.itsnicethat.com/rss",              "avatarColor": "#FF4F00"},
+    {"name": "Colossal",              "url": "https://www.thisiscolossal.com/feed/",         "avatarColor": "#2D6A4F"},
+    {"name": "Yanko Design",          "url": "https://www.yankodesign.com/feed/",            "avatarColor": "#0066CC"},
+    {"name": "Core77",                "url": "https://www.core77.com/rss",                   "avatarColor": "#333333"},
+    {"name": "Creative Boom",         "url": "https://www.creativeboom.com/feed/",           "avatarColor": "#E91E8C"},
+    {"name": "Wallpaper*",            "url": "https://www.wallpaper.com/feeds/latest.rss",   "avatarColor": "#8B6914"},
+    {"name": "ArchDaily",             "url": "https://www.archdaily.com/feed",               "avatarColor": "#C0392B"},
+    {"name": "Metropolis",            "url": "https://metropolismag.com/feed/",              "avatarColor": "#1A237E"},
+    {"name": "FastCompany Design",    "url": "https://www.fastcompany.com/design/rss",       "avatarColor": "#006400"},
 ]
 
-EXTRA_FEEDS = [
-    {
-        "name": "ArchDaily",
-        "url": "https://www.archdaily.com/feed",
-        "avatarColor": "#C0392B",
-    },
-    {
-        "name": "Dezeen Interiors",
-        "url": "https://www.dezeen.com/interiors/feed/",
-        "avatarColor": "#666666",
-    },
-    {
-        "name": "Dezeen Art & Design",
-        "url": "https://www.dezeen.com/art-design/feed/",
-        "avatarColor": "#888888",
-    },
-    {
-        "name": "Metropolis",
-        "url": "https://metropolismag.com/feed/",
-        "avatarColor": "#1A237E",
-    },
-    {
-        "name": "FastCompany Design",
-        "url": "https://www.fastcompany.com/design/rss",
-        "avatarColor": "#006400",
-    },
-    {
-        "name": "Designboom Architecture",
-        "url": "https://www.designboom.com/architecture/feed/",
-        "avatarColor": "#B03A2E",
-    },
-    {
-        "name": "Designboom Art",
-        "url": "https://www.designboom.com/art/feed/",
-        "avatarColor": "#6C3483",
-    },
-]
+DESIGN_FEEDS = ALL_FEEDS  # 하위 호환
+BATCH_SIZE = 4            # pull 한 번에 fetch할 피드 수
 
 
-def fetch_extra_feeds():
+def fetch_feed_batch(offset):
+    """ALL_FEEDS에서 offset 기준 BATCH_SIZE개 피드 fetch. 끝에 닿으면 wrap."""
+    total = len(ALL_FEEDS)
+    feeds = [ALL_FEEDS[(offset + i) % total] for i in range(BATCH_SIZE)]
     items = []
-    for feed_config in EXTRA_FEEDS:
+    for feed_config in feeds:
         items.extend(fetch_feed_items(feed_config))
     return build_cards_json(items)
 
