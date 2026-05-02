@@ -6,7 +6,7 @@ import sqlite3
 import requests
 from flask import Flask, jsonify, request, send_from_directory, Response
 from apscheduler.schedulers.background import BackgroundScheduler
-from app import fetch_all_feeds, build_cards_json, DESIGN_FEEDS
+from app import fetch_all_feeds, build_cards_json, fetch_extra_feeds, DESIGN_FEEDS
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.environ.get('DATA_DIR', os.path.join(BASE_DIR, 'data'))
@@ -133,7 +133,16 @@ def api_cards():
 @app.route('/api/cards/refresh', methods=['POST'])
 def api_cards_refresh():
     refresh_cards()
-    return jsonify(get_unseen_cards())
+    unseen = get_unseen_cards()
+    if unseen:
+        return jsonify(unseen)
+    # 1차 피드 소진 → 2차 피드 실시간 fetch
+    extra = fetch_extra_feeds()
+    con = get_db()
+    seen = {row[0] for row in con.execute('SELECT url FROM seen_cards').fetchall()}
+    con.close()
+    unseen_extra = [c for c in extra if c.get('url') not in seen]
+    return jsonify(unseen_extra)
 
 
 @app.route('/api/lists')

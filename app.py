@@ -72,6 +72,51 @@ DESIGN_FEEDS = [
     },
 ]
 
+EXTRA_FEEDS = [
+    {
+        "name": "ArchDaily",
+        "url": "https://www.archdaily.com/feed",
+        "avatarColor": "#C0392B",
+    },
+    {
+        "name": "Dezeen Interiors",
+        "url": "https://www.dezeen.com/interiors/feed/",
+        "avatarColor": "#666666",
+    },
+    {
+        "name": "Dezeen Art & Design",
+        "url": "https://www.dezeen.com/art-design/feed/",
+        "avatarColor": "#888888",
+    },
+    {
+        "name": "Metropolis",
+        "url": "https://metropolismag.com/feed/",
+        "avatarColor": "#1A237E",
+    },
+    {
+        "name": "FastCompany Design",
+        "url": "https://www.fastcompany.com/design/rss",
+        "avatarColor": "#006400",
+    },
+    {
+        "name": "Designboom Architecture",
+        "url": "https://www.designboom.com/architecture/feed/",
+        "avatarColor": "#B03A2E",
+    },
+    {
+        "name": "Designboom Art",
+        "url": "https://www.designboom.com/art/feed/",
+        "avatarColor": "#6C3483",
+    },
+]
+
+
+def fetch_extra_feeds():
+    items = []
+    for feed_config in EXTRA_FEEDS:
+        items.extend(fetch_feed_items(feed_config))
+    return build_cards_json(items)
+
 
 def to_relative_time(published_parsed):
     if not published_parsed:
