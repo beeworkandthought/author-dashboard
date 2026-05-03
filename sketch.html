@@ -166,7 +166,7 @@ html, body {
 /* Card with image */
 .card-img-wrap {
   width: 100%;
-  height: 360px;
+  height: 300px;
   padding: 0 6px 6px;
   flex-shrink: 0;
 }
@@ -216,7 +216,7 @@ html, body {
 
 /* Card with text summary */
 .card-summary-wrap {
-  height: 360px;
+  height: 300px;
   padding: 0 16px 20px;
   overflow: hidden;
   display: flex;
@@ -654,7 +654,7 @@ function buildCard(data, zClass) {
       </div>
     </div>`;
 
-  let inner = topBar;
+  let inner = topBar + `<div class="card-title">${data.title}</div>`;
 
   if (data.type === 'event') {
     inner += `
@@ -673,8 +673,6 @@ function buildCard(data, zClass) {
   } else {
     inner += `<div class="card-summary-wrap"><div class="card-summary">${data.summary}</div></div>`;
   }
-
-  inner += `<div class="card-title">${data.title}</div>`;
 
   div.innerHTML = inner;
 
@@ -1042,7 +1040,7 @@ function centerCards() {
   requestAnimationFrame(() => {
     const areaH = area.offsetHeight;
     const cardH = c1.offsetHeight;
-    const topOffset = Math.max(60, Math.round(areaH * 0.45 - cardH / 2));
+    const topOffset = Math.max(0, Math.round(areaH / 2 - cardH / 2));
     area.querySelectorAll('.card').forEach(card => { card.style.top = topOffset + 'px'; });
   });
 }
